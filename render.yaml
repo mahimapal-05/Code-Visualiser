@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: visual-code-playground
+    env: docker
+    plan: free
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+        placeholder: "Enter your Groq API key (optional, falls back to offline preview)"
