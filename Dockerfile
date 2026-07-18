@@ -1,11 +1,12 @@
-# Base Image
-FROM python:3.12-slim
+# Base Image (using full Debian Bookworm Python image which has curl, git, and build tools pre-installed)
+FROM python:3.12-bookworm
 
-# Install system dependencies, curl, git, and OpenJDK 17 (for Java runner support)
-RUN apt-get update && apt-get install -y \
-    curl \
+# Configure apt to retry downloads on transient network/DNS issues (fixes error 100)
+RUN echo "Acquire::Retries \"5\";" > /etc/apt/apt.conf.d/80-retries
+
+# Install OpenJDK 17 (for Java runner support)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     openjdk-17-jdk \
-    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js (LTS version) for frontend building
