@@ -489,6 +489,74 @@ export default function VisualizerCanvas({ stepData }) {
     );
   };
 
+  // Render general scalar variables as floating cards
+  const renderVariables = (viz) => {
+    const { vars = [] } = viz;
+    return (
+      <div key="variables-canvas" style={{ marginBottom: '24px', width: '100%' }}>
+        <h4 style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '12px' }}>State Variables</h4>
+        
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', padding: '10px 0' }}>
+          {vars.map((v, idx) => {
+            let borderColor = 'var(--border-subtle)';
+            let glow = 'none';
+            let bg = 'rgba(255, 255, 255, 0.02)';
+
+            if (v.state === 'checking') {
+              borderColor = 'var(--color-compare)';
+              glow = '0 0 10px var(--color-compare-glow)';
+              bg = 'rgba(56, 189, 248, 0.05)';
+            } else if (v.state === 'updated') {
+              borderColor = 'var(--color-swap)';
+              glow = '0 0 12px var(--color-swap-glow)';
+              bg = 'rgba(236, 72, 153, 0.05)';
+            }
+
+            return (
+              <div 
+                key={`${v.name}-${v.value}-${idx}`}
+                className="node-enter"
+                style={{
+                  minWidth: '110px',
+                  height: '75px',
+                  background: bg,
+                  border: `1px solid ${borderColor}`,
+                  borderRadius: '10px',
+                  boxShadow: glow,
+                  padding: '10px 14px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                <div style={{
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  color: v.state === 'checking' ? 'var(--color-compare)' : (v.state === 'updated' ? 'var(--color-swap)' : 'var(--text-secondary)'),
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  {v.name}
+                </div>
+                <div style={{
+                  fontSize: '20px',
+                  fontWeight: '700',
+                  fontFamily: 'var(--font-mono)',
+                  color: 'var(--text-primary)',
+                  textAlign: 'right',
+                  lineHeight: '1.2'
+                }}>
+                  {typeof v.value === 'object' ? JSON.stringify(v.value) : String(v.value)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       
@@ -512,6 +580,7 @@ export default function VisualizerCanvas({ stepData }) {
           if (viz.type === 'linked_list') return renderLinkedList(viz);
           if (viz.type === 'recursion_tree') return renderRecursionTree(viz);
           if (viz.type === 'grid') return renderGrid(viz);
+          if (viz.type === 'variables') return renderVariables(viz);
           if (viz.type === 'console') return renderConsoleLog(viz);
           return null;
         })}

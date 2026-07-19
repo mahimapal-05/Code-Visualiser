@@ -1010,6 +1010,7 @@ You MUST return a JSON object with:
      - Array component: {"type": "array", "name": "arr", "elements": [{"id": "0", "value": val, "state": "normal"|"comparing"|"swapped"|"sorted"|"visiting"}], "pointers": {"pointer_name": index_int}}
      - Linked list node pointers: {"type": "linked_list", "nodes": [{"id": "node_1", "value": val, "nextId": "node_2"|null, "state": "normal"|"active"|"modified"}], "pointers": {"head": "node_1", "curr": "node_2"}}
      - Recursion tree component: {"type": "recursion_tree", "nodes": [{"id": "id", "label": "func(val)", "parentId": parentId|null, "state": "active"|"done"|"waiting", "val": returnVal|null}]}
+     - Scalar variables component (MUST use this to visualize variables and loop conditions for code that has no array/list/tree data structures): {"type": "variables", "vars": [{"name": "varName_or_checkCondition", "value": val, "state": "normal"|"checking"|"updated"}]}
 
 Make sure to construct trace steps that cover crucial updates: loop bounds, variable assignments, comparison changes, and pointer updates. Do not create steps for empty lines.
 """

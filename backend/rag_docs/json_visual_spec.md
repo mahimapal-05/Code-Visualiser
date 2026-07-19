@@ -79,3 +79,18 @@ Displays run output buffer at the current point.
   "output": "Starting sort...\nSwapping 5 and 3\n"
 }
 ```
+
+#### 5. Scalar Variables Component (`type: "variables"`)
+Used for general variable states (loops, condition evaluations, prime checks).
+```json
+{
+  "type": "variables",
+  "vars": [
+    {"name": "n", "value": 7, "state": "normal"},
+    {"name": "i", "value": 2, "state": "checking"},
+    {"name": "isPrime", "value": "true", "state": "updated"}
+  ]
+}
+```
+*States*: `"normal"`, `"checking"`, `"updated"`.
+
