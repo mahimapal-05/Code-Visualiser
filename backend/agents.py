@@ -6,9 +6,19 @@ from groq import Groq
 from dotenv import load_dotenv
 from backend.runner import execute_code
 from backend.rag import get_rag_engine
+import hashlib
 
 # Load environment variables
 load_dotenv()
+
+# In-memory execution trace cache to speed up live visual compilation
+trace_cache = {}
+
+def get_code_hash(code: str, language: str) -> str:
+    """Generates a SHA-256 hash for cache lookups, ignoring minor leading/trailing indentation changes."""
+    normalized = "\n".join(line.strip() for line in code.strip().split("\n"))
+    return hashlib.sha256(f"{language}:{normalized}".encode("utf-8")).hexdigest()
+
 
 def get_groq_client():
     api_key = os.getenv("GROQ_API_KEY")
@@ -615,6 +625,13 @@ def compile_visual_trace(code: str, language: str) -> Dict[str, Any]:
     and calls Groq LLM to formulate step-by-step visual frames.
     Supports offline fallback traces if GROQ_API_KEY is not configured.
     """
+    # 0. Check caching system
+    code_hash = get_code_hash(code, language)
+    if code_hash in trace_cache:
+        cached_res = trace_cache[code_hash].copy()
+        cached_res["cache_hit"] = True
+        return cached_res
+
     # 1. Check offline fallback trace first
     fallback = get_offline_fallback_trace(code, language)
     if fallback and not os.getenv("GROQ_API_KEY"):
@@ -728,7 +745,7 @@ Compile the JSON trace:
 
     try:
         response = client.chat.completions.create(
-            model='llama-3.3-70b-versatile',
+            model='llama-3.1-8b-instant',
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt_body}
@@ -738,14 +755,19 @@ Compile the JSON trace:
         )
         
         trace_data = json.loads(response.choices[0].message.content)
-        return {
+        
+        # Save to memory cache
+        res = {
             "success": True,
             "offline_mode": False,
             "stdout": run_info["stdout"],
             "stderr": run_info["stderr"],
             "execution_time_ms": run_info["execution_time_ms"],
-            "trace": trace_data
+            "trace": trace_data,
+            "cache_hit": False
         }
+        trace_cache[code_hash] = res
+        return res
         
     except Exception as e:
         print(f"Error calling Groq for visualizer compilation: {e}")
@@ -829,7 +851,7 @@ Guidelines:
 
     try:
         response = client.chat.completions.create(
-            model='llama-3.3-70b-versatile',
+            model='llama-3.1-8b-instant',
             messages=messages,
             temperature=0.4
         )

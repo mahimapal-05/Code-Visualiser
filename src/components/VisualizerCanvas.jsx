@@ -1,13 +1,21 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+
+// Custom hook to track previous variables for flashing changes
+function usePrevious(value) {
+  const ref = useRef();
+  useEffect(() => {
+    ref.current = value;
+  }, [value]);
+  return ref.current;
+}
 
 // Helpers to render arrows/links
 function SVGArrow({ fromX, fromY, toX, toY }) {
-  const headLength = 10; // length of head in pixels
+  const headLength = 10;
   const dx = toX - fromX;
   const dy = toY - fromY;
   const angle = Math.atan2(dy, dx);
   
-  // Back off the arrow tip so it doesn't overlap the node borders
   const offX = toX - 35 * Math.cos(angle);
   const offY = toY - 35 * Math.sin(angle);
   
@@ -33,6 +41,8 @@ function SVGArrow({ fromX, fromY, toX, toY }) {
 }
 
 export default function VisualizerCanvas({ stepData }) {
+  const prevVariables = usePrevious(stepData?.variables) || {};
+
   if (!stepData) {
     return (
       <div style={{
@@ -56,7 +66,6 @@ export default function VisualizerCanvas({ stepData }) {
   const renderArray = (viz) => {
     const { elements = [], name = "arr", pointers = {} } = viz;
     
-    // Find active pointers at each index
     const indexPointers = {};
     Object.entries(pointers).forEach(([pName, pIdx]) => {
       const idxInt = parseInt(pIdx);
@@ -72,7 +81,6 @@ export default function VisualizerCanvas({ stepData }) {
         
         <div style={{ display: 'flex', gap: '8px', padding: '20px 0', overflowX: 'auto', alignItems: 'flex-start' }}>
           {elements.map((el, idx) => {
-            let stateClass = '';
             let style = {
               width: '50px',
               height: '50px',
@@ -105,13 +113,10 @@ export default function VisualizerCanvas({ stepData }) {
 
             return (
               <div key={el.id || idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', width: '50px' }}>
-                {/* Element Block */}
                 <div style={style}>
                   {el.value}
                 </div>
-                {/* Index label */}
                 <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{idx}</span>
-                {/* Pointer tags */}
                 {indexPointers[idx] && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center' }}>
                     {indexPointers[idx].map(pName => (
@@ -144,7 +149,6 @@ export default function VisualizerCanvas({ stepData }) {
   const renderLinkedList = (viz) => {
     const { nodes = [], pointers = {} } = viz;
     
-    // Node pointing references
     const nodePointers = {};
     Object.entries(pointers).forEach(([pName, pNodeId]) => {
       if (pNodeId) {
@@ -172,7 +176,6 @@ export default function VisualizerCanvas({ stepData }) {
 
             return (
               <div key={node.id || idx} style={{ display: 'flex', alignItems: 'center', position: 'relative', flexShrink: 0 }}>
-                {/* Pointer Indicators above node */}
                 {nodePointers[node.id] && (
                   <div style={{
                     position: 'absolute',
@@ -201,7 +204,6 @@ export default function VisualizerCanvas({ stepData }) {
                   </div>
                 )}
 
-                {/* Node Box */}
                 <div 
                   className="node-enter"
                   style={{
@@ -239,7 +241,6 @@ export default function VisualizerCanvas({ stepData }) {
                   </div>
                 </div>
 
-                {/* Arrow Pointer */}
                 {idx < nodes.length - 1 && (
                   <div style={{
                     width: '40px',
@@ -263,7 +264,6 @@ export default function VisualizerCanvas({ stepData }) {
                   </div>
                 )}
                 
-                {/* NULL tail visual */}
                 {idx === nodes.length - 1 && node.nextId === null && (
                   <div style={{
                     position: 'absolute',
@@ -288,14 +288,11 @@ export default function VisualizerCanvas({ stepData }) {
     const { nodes = [] } = viz;
     if (nodes.length === 0) return null;
 
-    // Build levels dynamically
-    // Map node.id to index and parent references
     const nodeMap = {};
     nodes.forEach(n => {
       nodeMap[n.id] = { ...n, children: [], x: 0, y: 0, level: 0 };
     });
 
-    // Compute tree relationships
     const roots = [];
     nodes.forEach(n => {
       if (n.parentId && nodeMap[n.parentId]) {
@@ -305,7 +302,6 @@ export default function VisualizerCanvas({ stepData }) {
       }
     });
 
-    // Compute levels (BFS from roots)
     const queue = roots.map(rid => ({ id: rid, level: 0 }));
     let maxLevel = 0;
     while (queue.length > 0) {
@@ -319,18 +315,15 @@ export default function VisualizerCanvas({ stepData }) {
       }
     }
 
-    // Grid coordinate planning for tree
     const canvasWidth = 600;
     const canvasHeight = 350;
     const rowHeight = 70;
     
-    // Group node mapping lists by levels
     const levelsGroup = Array.from({ length: maxLevel + 1 }, () => []);
     Object.values(nodeMap).forEach(mNode => {
       levelsGroup[mNode.level].push(mNode.id);
     });
 
-    // Layout positions: space evenly at each level
     levelsGroup.forEach((lvlNodeIds, lvl) => {
       const nodeCount = lvlNodeIds.length;
       const step = canvasWidth / (nodeCount + 1);
@@ -353,7 +346,6 @@ export default function VisualizerCanvas({ stepData }) {
           borderRadius: '10px',
           overflow: 'hidden'
         }}>
-          {/* Render lines first so they are behind circles */}
           {Object.values(nodeMap).map(mNode => {
             if (mNode.parentId && nodeMap[mNode.parentId]) {
               const parent = nodeMap[mNode.parentId];
@@ -370,7 +362,6 @@ export default function VisualizerCanvas({ stepData }) {
             return null;
           })}
 
-          {/* Render circular nodes */}
           {Object.values(nodeMap).map(mNode => {
             let borderColor = 'var(--border-subtle)';
             let shadow = 'none';
@@ -425,6 +416,56 @@ export default function VisualizerCanvas({ stepData }) {
     );
   };
 
+  // Render Grid / Matrix Traversals
+  const renderGrid = (viz) => {
+    const { rows = 1, cols = 1, cells = [], name = "grid" } = viz;
+    
+    const gridMap = {};
+    cells.forEach(cell => {
+      gridMap[`${cell.r},${cell.c}`] = cell;
+    });
+
+    const gridItems = [];
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const cell = gridMap[`${r},${c}`] || { value: '', state: 'unvisited' };
+        gridItems.push({ r, c, ...cell });
+      }
+    }
+
+    return (
+      <div key={viz.name || 'grid'} style={{ marginBottom: '24px', width: '100%' }}>
+        <h4 style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '8px' }}>Grid Matrix: {name}</h4>
+        
+        <div 
+          className="grid-container"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${cols}, 32px)`,
+            gridTemplateRows: `repeat(${rows}, 32px)`
+          }}
+        >
+          {gridItems.map((cell, idx) => {
+            let stateClass = "grid-cell-unvisited";
+            if (cell.state === 'visiting') stateClass = "grid-cell-visiting";
+            else if (cell.state === 'visited') stateClass = "grid-cell-visited";
+            else if (cell.state === 'path') stateClass = "grid-cell-path";
+
+            return (
+              <div 
+                key={`${cell.r}-${cell.c}-${idx}`}
+                className={`grid-cell ${stateClass} node-enter`}
+                title={`(${cell.r}, ${cell.c})`}
+              >
+                {cell.value}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   // Render general outputs
   const renderConsoleLog = (viz) => {
     return (
@@ -451,7 +492,6 @@ export default function VisualizerCanvas({ stepData }) {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       
-      {/* Explanation banner */}
       {explanation && (
         <div style={{
           padding: '12px 16px',
@@ -466,12 +506,12 @@ export default function VisualizerCanvas({ stepData }) {
         </div>
       )}
 
-      {/* Visual Canvas Area */}
       <div style={{ flexGrow: 1, padding: '20px', overflowY: 'auto' }}>
         {visuals.map((viz, idx) => {
           if (viz.type === 'array') return renderArray(viz);
           if (viz.type === 'linked_list') return renderLinkedList(viz);
           if (viz.type === 'recursion_tree') return renderRecursionTree(viz);
+          if (viz.type === 'grid') return renderGrid(viz);
           if (viz.type === 'console') return renderConsoleLog(viz);
           return null;
         })}
@@ -496,16 +536,24 @@ export default function VisualizerCanvas({ stepData }) {
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
               <tbody>
-                {Object.entries(variables).map(([name, val]) => (
-                  <tr key={name} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
-                    <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-compare)', padding: '4px 0', width: '40%' }}>
-                      {name}
-                    </td>
-                    <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', padding: '4px 0' }}>
-                      {typeof val === 'object' ? JSON.stringify(val) : String(val)}
-                    </td>
-                  </tr>
-                ))}
+                {Object.entries(variables).map(([name, val]) => {
+                  const hasChanged = prevVariables[name] !== undefined && prevVariables[name] !== val;
+                  // Key is name + stringified value to force recreation and trigger CSS flash
+                  return (
+                    <tr 
+                      key={`${name}-${JSON.stringify(val)}`} 
+                      className={hasChanged ? "flash-update" : ""}
+                      style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}
+                    >
+                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-compare)', padding: '4px 0', width: '40%' }}>
+                        {name}
+                      </td>
+                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', padding: '4px 0' }}>
+                        {typeof val === 'object' ? JSON.stringify(val) : String(val)}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -517,7 +565,7 @@ export default function VisualizerCanvas({ stepData }) {
             CALL STACK
           </span>
           {stack.length === 0 ? (
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>Global execution scope</span>
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>Global scope</span>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column-reverse', gap: '4px' }}>
               {stack.map((frame, idx) => (

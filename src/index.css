@@ -217,3 +217,107 @@ body {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.2);
 }
+
+/* Active executing code line highlight */
+.line-highlight {
+  background: rgba(167, 139, 250, 0.12) !important;
+  border-left: 3px solid var(--color-accent) !important;
+  box-shadow: inset 5px 0 10px -5px rgba(167, 139, 250, 0.3);
+}
+
+/* Variable change flash animation */
+@keyframes flash-change {
+  0% {
+    background-color: rgba(167, 139, 250, 0.4);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.flash-update {
+  animation: flash-change 0.8s ease-out;
+}
+
+/* Grid Matrix Visualizer style components */
+.grid-container {
+  display: grid;
+  gap: 4px;
+  background: rgba(10, 12, 16, 0.3);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  margin-bottom: 24px;
+  width: fit-content;
+  max-width: 100%;
+  overflow: auto;
+}
+
+.grid-cell {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.grid-cell-unvisited {
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-muted);
+}
+
+.grid-cell-visiting {
+  background: var(--color-compare-glow);
+  border-color: var(--color-compare);
+  color: var(--color-compare);
+  box-shadow: 0 0 8px var(--color-compare-glow);
+  transform: scale(0.95);
+}
+
+.grid-cell-visited {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.grid-cell-path {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: var(--color-success);
+  color: var(--color-success);
+  box-shadow: 0 0 10px var(--color-success-glow);
+}
+
+.status-chip {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-syncing {
+  background: rgba(56, 189, 248, 0.1);
+  color: var(--color-compare);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.status-compiled {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--color-success);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.status-error {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-error);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+

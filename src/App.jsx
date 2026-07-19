@@ -35,6 +35,8 @@ export default function App() {
   ]);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const [isSimulationMode, setIsSimulationMode] = useState(false);
+  const [syncStatus, setSyncStatus] = useState('idle'); // idle, syncing, compiled, error
   const chatEndRef = useRef(null);
 
   // 1. Fetch Health Status on Mount
@@ -57,6 +59,57 @@ export default function App() {
     } catch (e) {
       setConnectionStatus('offline');
       setConnectionMessage('Backend offline. Run npm run dev-all to start.');
+    }
+  };
+
+  // Debounced Live Auto-Visualization Compile trigger
+  useEffect(() => {
+    if (!code || !code.trim()) {
+      setSyncStatus('idle');
+      return;
+    }
+    
+    setSyncStatus('syncing');
+    const delayDebounceFn = setTimeout(() => {
+      triggerLiveVisualization();
+    }, 1200);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [code, language]);
+
+  const triggerLiveVisualization = async () => {
+    if (isRunning || isCompiling) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/visualize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, language })
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.trace) {
+          setTrace(data.trace);
+          setIsSimulationMode(true);
+          setSyncStatus('compiled');
+          setConsoleOutput({
+            stdout: data.stdout || '(no stdout output)',
+            stderr: data.stderr || '',
+            exit_code: data.success ? 0 : -1
+          });
+        } else {
+          setSyncStatus('error');
+          setConsoleOutput({
+            stdout: data.stdout || '',
+            stderr: data.stderr || 'Syntax error during execution compilation.',
+            exit_code: -1
+          });
+        }
+      } else {
+        setSyncStatus('error');
+      }
+    } catch (e) {
+      setSyncStatus('error');
     }
   };
 
@@ -122,6 +175,7 @@ export default function App() {
     setIsCompiling(true);
     setIsPlaying(false);
     setActiveTab('visualizer');
+    setSyncStatus('syncing');
 
     try {
       const res = await fetch(`${API_BASE}/api/visualize`, {
@@ -135,27 +189,27 @@ export default function App() {
         if (data.success && data.trace) {
           setTrace(data.trace);
           setCurrentStepIndex(0);
+          setIsSimulationMode(true);
+          setSyncStatus('compiled');
           setConsoleOutput({
             stdout: data.stdout || '',
             stderr: data.stderr || '',
             exit_code: data.success ? 0 : -1
           });
         } else {
-          // Syntax compilation error
+          setSyncStatus('error');
           setConsoleOutput({
             stdout: data.stdout || '',
             stderr: data.stderr || 'Syntax compile error',
             exit_code: -1
           });
           setActiveTab('console');
-          alert('Compilation/Runtime error! Click the Raw Console tab to check details.');
         }
       } else {
-        const err = await res.json();
-        alert(`Compilation failed: ${err.detail}`);
+        setSyncStatus('error');
       }
     } catch (e) {
-      alert(`Failed to connect to visualizer compiler: ${e.message}`);
+      setSyncStatus('error');
     } finally {
       setIsCompiling(false);
     }
@@ -283,6 +337,10 @@ export default function App() {
             onVisualize={handleVisualizeCode}
             isRunning={isRunning}
             isCompiling={isCompiling}
+            activeLine={currentStep ? currentStep.line : 0}
+            syncStatus={syncStatus}
+            isSimulationMode={isSimulationMode}
+            setIsSimulationMode={setIsSimulationMode}
           />
         </div>
 
