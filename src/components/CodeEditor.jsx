@@ -30,7 +30,60 @@ head.next = Node(20)
 # insert new node (15) after head
 new_node = Node(15)
 new_node.next = head.next
-head.next = new_node`
+head.next = new_node`,
+    stack: `# Stack Push & Pop Operations
+stack = []
+stack.append(10)
+stack.append(20)
+stack.append(30)
+
+popped = stack.pop()
+print("Popped element:", popped)
+print("Current stack:", stack)`,
+    binarysearch: `# Binary Search Algorithm
+def binary_search(arr, target):
+    low, high = 0, len(arr) - 1
+    while low <= high:
+        mid = (low + high) // 2
+        if arr[mid] == target:
+            return mid
+        elif arr[mid] < target:
+            low = mid + 1
+        else:
+            high = mid - 1
+    return -1
+
+arr = [2, 5, 8, 12, 16, 23, 38, 56]
+target = 23
+result = binary_search(arr, target)
+print(f"Target {target} found at index:", result)`,
+    prime: `# Prime Number Verification
+def is_prime(n):
+    if n <= 1:
+        return False
+    for i in range(2, int(n**0.5) + 1):
+        if n % i == 0:
+            return False
+    return True
+
+num = 29
+print(f"Is {num} prime?:", is_prime(num))`,
+    grid: `# 2D Grid Matrix Path Traversal
+grid = [
+    [1, 0, 0],
+    [1, 1, 0],
+    [0, 1, 1]
+]
+
+rows, cols = 3, 3
+path_cells = 0
+
+for r in range(rows):
+    for c in range(cols):
+        if grid[r][c] == 1:
+            path_cells += 1
+
+print("Total path cells visited:", path_cells)`
   },
   java: {
     bubble: `import java.util.Arrays;
@@ -85,6 +138,68 @@ public class Main {
         newNode.next = head.next;
         head.next = newNode;
     }
+}`,
+    stack: `import java.util.Stack;
+
+public class Main {
+    public static void main(String[] args) {
+        Stack<Integer> st = new Stack<>();
+        st.push(10);
+        st.push(20);
+        st.push(30);
+
+        int popped = st.pop();
+        System.out.println("Popped element: " + popped);
+        System.out.println("Current stack: " + st);
+    }
+}`,
+    binarysearch: `public class Main {
+    public static int binarySearch(int[] arr, int target) {
+        int low = 0, high = arr.length - 1;
+        while (low <= high) {
+            int mid = (low + high) / 2;
+            if (arr[mid] == target) return mid;
+            else if (arr[mid] < target) low = mid + 1;
+            else high = mid - 1;
+        }
+        return -1;
+    }
+
+    public static void main(String[] args) {
+        int[] arr = {2, 5, 8, 12, 16, 23, 38, 56};
+        int target = 23;
+        System.out.println("Target found at index: " + binarySearch(arr, target));
+    }
+}`,
+    prime: `public class Main {
+    public static boolean isPrime(int n) {
+        if (n <= 1) return false;
+        for (int i = 2; i * i <= n; i++) {
+            if (n % i == 0) return false;
+        }
+        return true;
+    }
+
+    public static void main(String[] args) {
+        int num = 29;
+        System.out.println("Is " + num + " prime?: " + isPrime(num));
+    }
+}`,
+    grid: `public class Main {
+    public static void main(String[] args) {
+        int[][] grid = {
+            {1, 0, 0},
+            {1, 1, 0},
+            {0, 1, 1}
+        };
+        int count = 0;
+        for (int r = 0; r < 3; r++) {
+            for (int c = 0; c < 3; c++) {
+                if (grid[r][c] == 1) count++;
+            }
+        }
+        System.out.println("Total path cells visited: " + count);
+    }
 }`
   },
   cpp: {
@@ -135,6 +250,72 @@ int main() {
     newNode->next = head->next;
     head->next = newNode;
     return 0;
+}`,
+    stack: `#include <iostream>
+#include <stack>
+
+int main() {
+    std::stack<int> st;
+    st.push(10);
+    st.push(20);
+    st.push(30);
+
+    int popped = st.top();
+    st.pop();
+    std::cout << "Popped element: " << popped << std::endl;
+    return 0;
+}`,
+    binarysearch: `#include <iostream>
+#include <vector>
+
+int binarySearch(const std::vector<int>& arr, int target) {
+    int low = 0, high = arr.size() - 1;
+    while (low <= high) {
+        int mid = low + (high - low) / 2;
+        if (arr[mid] == target) return mid;
+        else if (arr[mid] < target) low = mid + 1;
+        else high = mid - 1;
+    }
+    return -1;
+}
+
+int main() {
+    std::vector<int> arr = {2, 5, 8, 12, 16, 23, 38, 56};
+    std::cout << "Target found at index: " << binarySearch(arr, 23) << std::endl;
+    return 0;
+}`,
+    prime: `#include <iostream>
+
+bool isPrime(int n) {
+    if (n <= 1) return false;
+    for (int i = 2; i * i <= n; i++) {
+        if (n % i == 0) return false;
+    }
+    return true;
+}
+
+int main() {
+    int num = 29;
+    std::cout << "Is " << num << " prime?: " << (isPrime(num) ? "true" : "false") << std::endl;
+    return 0;
+}`,
+    grid: `#include <iostream>
+#include <vector>
+
+int main() {
+    std::vector<std::vector<int>> grid = {
+        {1, 0, 0},
+        {1, 1, 0},
+        {0, 1, 1}
+    };
+    int count = 0;
+    for (int r = 0; r < 3; r++) {
+        for (int c = 0; c < 3; c++) {
+            if (grid[r][c] == 1) count++;
+        }
+    }
+    std::cout << "Total path cells visited: " << count << std::endl;
+    return 0;
 }`
   },
   javascript: {
@@ -169,7 +350,51 @@ head.next = new Node(20);
 
 let newNode = new Node(15);
 newNode.next = head.next;
-head.next = newNode;`
+head.next = newNode;`,
+    stack: `// Stack Push & Pop Example
+let stack = [];
+stack.push(10);
+stack.push(20);
+stack.push(30);
+
+let popped = stack.pop();
+console.log("Popped element:", popped);
+console.log("Current stack:", stack);`,
+    binarysearch: `function binarySearch(arr, target) {
+    let low = 0, high = arr.length - 1;
+    while (low <= high) {
+        let mid = Math.floor((low + high) / 2);
+        if (arr[mid] === target) return mid;
+        else if (arr[mid] < target) low = mid + 1;
+        else high = mid - 1;
+    }
+    return -1;
+}
+
+console.log("Target found at index:", binarySearch([2, 5, 8, 12, 16, 23, 38, 56], 23));`,
+    prime: `function isPrime(n) {
+    if (n <= 1) return false;
+    for (let i = 2; i * i <= n; i++) {
+        if (n % i === 0) return false;
+    }
+    return true;
+}
+
+let num = 29;
+console.log(\`Is \${num} prime?:\`, isPrime(num));`,
+    grid: `let grid = [
+    [1, 0, 0],
+    [1, 1, 0],
+    [0, 1, 1]
+];
+
+let count = 0;
+for (let r = 0; r < 3; r++) {
+    for (let c = 0; c < 3; c++) {
+        if (grid[r][c] === 1) count++;
+    }
+}
+console.log("Total path cells visited:", count);`
   }
 };
 
@@ -289,6 +514,10 @@ export default function CodeEditor({
             <option value="bubble">Bubble Sort</option>
             <option value="fibonacci">Fibonacci</option>
             <option value="linkedlist">Linked List</option>
+            <option value="stack">Stack Operations</option>
+            <option value="binarysearch">Binary Search</option>
+            <option value="prime">Prime Verification</option>
+            <option value="grid">2D Grid Traversal</option>
           </select>
         </div>
       </div>
