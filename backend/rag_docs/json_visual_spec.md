@@ -80,17 +80,19 @@ Displays run output buffer at the current point.
 }
 ```
 
-#### 5. Scalar Variables Component (`type: "variables"`)
-Used for general variable states (loops, condition evaluations, prime checks).
+#### 6. Stack & Queue Component (`type: "stack_queue"`)
+Used for visualizing stack buckets (push/pop) and queue tubes (enqueue/dequeue).
 ```json
 {
-  "type": "variables",
-  "vars": [
-    {"name": "n", "value": 7, "state": "normal"},
-    {"name": "i", "value": 2, "state": "checking"},
-    {"name": "isPrime", "value": "true", "state": "updated"}
+  "type": "stack_queue",
+  "variant": "stack",
+  "name": "myStack",
+  "items": [
+    {"id": "0", "value": 10, "state": "normal"},
+    {"id": "1", "value": 20, "state": "pushing"}
   ]
 }
 ```
-*States*: `"normal"`, `"checking"`, `"updated"`.
+*States*: `"normal"`, `"pushing"`, `"popping"`, `"top"`.
+
 

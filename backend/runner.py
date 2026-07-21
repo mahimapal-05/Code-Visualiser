@@ -148,15 +148,147 @@ def run_java_code(code: str, timeout: float = 5.0) -> dict:
         except Exception:
             pass
 
+def run_cpp_code(code: str, timeout: float = 5.0) -> dict:
+    """
+    Compiles and executes C++ code in a subprocess using g++.
+    """
+    temp_dir = tempfile.mkdtemp()
+    file_path = os.path.join(temp_dir, "main.cpp")
+    exe_name = "main.exe" if os.name == 'nt' else "main"
+    exe_path = os.path.join(temp_dir, exe_name)
+    
+    try:
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(code)
+            
+        start_compile = time.time()
+        compile_result = subprocess.run(
+            ["g++", "-O2", "main.cpp", "-o", exe_name],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            cwd=temp_dir
+        )
+        compile_time = time.time() - start_compile
+        
+        if compile_result.returncode != 0:
+            return {
+                "success": False,
+                "stdout": "",
+                "stderr": compile_result.stderr,
+                "exit_code": compile_result.returncode,
+                "execution_time_ms": int(compile_time * 1000),
+                "status": "compile_error"
+            }
+            
+        start_run = time.time()
+        run_result = subprocess.run(
+            [exe_path],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            cwd=temp_dir
+        )
+        run_time = time.time() - start_run
+        
+        return {
+            "success": run_result.returncode == 0,
+            "stdout": run_result.stdout,
+            "stderr": run_result.stderr,
+            "exit_code": run_result.returncode,
+            "execution_time_ms": int(run_time * 1000),
+            "status": "success" if run_result.returncode == 0 else "runtime_error"
+        }
+    except subprocess.TimeoutExpired:
+        return {
+            "success": False,
+            "stdout": "",
+            "stderr": f"Time Limit Exceeded: Execution took longer than {timeout} seconds.",
+            "exit_code": -1,
+            "execution_time_ms": int(timeout * 1000),
+            "status": "timeout"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "stdout": "",
+            "stderr": f"Execution Error: {str(e)}",
+            "exit_code": -1,
+            "execution_time_ms": 0,
+            "status": "error"
+        }
+    finally:
+        try:
+            shutil.rmtree(temp_dir)
+        except Exception:
+            pass
+
+def run_js_code(code: str, timeout: float = 5.0) -> dict:
+    """
+    Executes JavaScript code in a subprocess using Node.js.
+    """
+    temp_dir = tempfile.mkdtemp()
+    file_path = os.path.join(temp_dir, "script.js")
+    
+    try:
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(code)
+            
+        start_time = time.time()
+        result = subprocess.run(
+            ["node", file_path],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            cwd=temp_dir
+        )
+        elapsed_time = time.time() - start_time
+        
+        return {
+            "success": result.returncode == 0,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "exit_code": result.returncode,
+            "execution_time_ms": int(elapsed_time * 1000),
+            "status": "success" if result.returncode == 0 else "runtime_error"
+        }
+    except subprocess.TimeoutExpired:
+        return {
+            "success": False,
+            "stdout": "",
+            "stderr": f"Time Limit Exceeded: Execution took longer than {timeout} seconds.",
+            "exit_code": -1,
+            "execution_time_ms": int(timeout * 1000),
+            "status": "timeout"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "stdout": "",
+            "stderr": f"Execution Error: {str(e)}",
+            "exit_code": -1,
+            "execution_time_ms": 0,
+            "status": "error"
+        }
+    finally:
+        try:
+            shutil.rmtree(temp_dir)
+        except Exception:
+            pass
+
 def execute_code(code: str, language: str) -> dict:
     """
     Orchestrator to route execution to appropriate language runner.
     """
     lang_lower = language.lower()
-    if lang_lower == "python" or lang_lower == "py":
+    if lang_lower in ["python", "py"]:
         return run_python_code(code)
-    elif lang_lower == "java":
+    elif lang_lower in ["java"]:
         return run_java_code(code)
+    elif lang_lower in ["cpp", "c++"]:
+        return run_cpp_code(code)
+    elif lang_lower in ["javascript", "js"]:
+        return run_js_code(code)
     else:
         return {
             "success": False,

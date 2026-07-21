@@ -4,9 +4,10 @@ FROM python:3.12-bookworm
 # Configure apt to retry downloads on transient network/DNS issues (fixes error 100)
 RUN echo "Acquire::Retries \"5\";" > /etc/apt/apt.conf.d/80-retries
 
-# Install OpenJDK 17 (for Java runner support)
+# Install OpenJDK 17 and g++ (for Java and C++ runner support)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openjdk-17-jdk \
+    g++ \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js (LTS version) for frontend building

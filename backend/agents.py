@@ -996,7 +996,7 @@ def compile_visual_trace(code: str, language: str) -> Dict[str, Any]:
 
     # 5. Compile prompt for Groq
     system_prompt = """
-You are the Agentic AI Code Visualizer compiler. Your job is to compile a detailed, step-by-step visual execution trace of the user's Python or Java program.
+You are the Agentic AI Code Visualizer compiler. Your job is to compile a detailed, step-by-step visual execution trace of the user's Python, Java, C++, or JavaScript program.
 The code ran successfully on the server.
 
 You MUST return a JSON object with:
@@ -1011,6 +1011,7 @@ You MUST return a JSON object with:
      - Linked list node pointers: {"type": "linked_list", "nodes": [{"id": "node_1", "value": val, "nextId": "node_2"|null, "state": "normal"|"active"|"modified"}], "pointers": {"head": "node_1", "curr": "node_2"}}
      - Recursion tree component: {"type": "recursion_tree", "nodes": [{"id": "id", "label": "func(val)", "parentId": parentId|null, "state": "active"|"done"|"waiting", "val": returnVal|null}]}
      - Scalar variables component (MUST use this to visualize variables and loop conditions for code that has no array/list/tree data structures): {"type": "variables", "vars": [{"name": "varName_or_checkCondition", "value": val, "state": "normal"|"checking"|"updated"}]}
+     - Stack & Queue component: {"type": "stack_queue", "variant": "stack"|"queue", "name": "varName", "items": [{"id": "0", "value": val, "state": "normal"|"pushing"|"popping"|"top"}]}
 
 Make sure to construct trace steps that cover crucial updates: loop bounds, variable assignments, comparison changes, and pointer updates. Do not create steps for empty lines.
 """

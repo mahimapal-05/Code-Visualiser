@@ -557,6 +557,84 @@ export default function VisualizerCanvas({ stepData }) {
     );
   };
 
+  // Render Stack & Queue Container
+  const renderStackQueue = (viz) => {
+    const { variant = 'stack', name = 'container', items = [] } = viz;
+    const isStack = variant === 'stack';
+
+    return (
+      <div key={name} style={{ marginBottom: '24px', width: '100%' }}>
+        <h4 style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '12px' }}>
+          {isStack ? '🪣 Stack Bucket' : '🚇 Queue Tube'}: {name}
+        </h4>
+        
+        <div style={{
+          display: 'flex',
+          flexDirection: isStack ? 'column-reverse' : 'row',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '16px',
+          background: 'rgba(10, 12, 16, 0.4)',
+          border: isStack ? '2px solid var(--border-subtle)' : '2px dashed var(--border-subtle)',
+          borderTop: isStack ? 'none' : '2px dashed var(--border-subtle)',
+          borderRadius: isStack ? '0 0 12px 12px' : '12px',
+          maxWidth: isStack ? '180px' : '100%',
+          minHeight: isStack ? '160px' : '70px',
+          overflowX: isStack ? 'hidden' : 'auto',
+          justifyContent: isStack ? 'flex-start' : 'flex-start'
+        }}>
+          {items.length === 0 ? (
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic', margin: 'auto' }}>Empty</span>
+          ) : (
+            items.map((item, idx) => {
+              let border = '1px solid var(--border-subtle)';
+              let bg = 'var(--bg-surface)';
+              let glow = 'none';
+
+              if (item.state === 'pushing') {
+                border = '2px solid var(--color-success)';
+                bg = 'rgba(16, 185, 129, 0.15)';
+                glow = '0 0 10px rgba(16, 185, 129, 0.4)';
+              } else if (item.state === 'popping') {
+                border = '2px solid var(--color-swap)';
+                bg = 'rgba(236, 72, 153, 0.15)';
+                glow = '0 0 10px rgba(236, 72, 153, 0.4)';
+              } else if (item.state === 'top' || idx === items.length - 1) {
+                border = '2px solid var(--color-accent)';
+                bg = 'rgba(139, 92, 246, 0.15)';
+              }
+
+              return (
+                <div 
+                  key={item.id || idx}
+                  className="node-enter"
+                  style={{
+                    width: isStack ? '140px' : '55px',
+                    height: '45px',
+                    borderRadius: '8px',
+                    border,
+                    background: bg,
+                    boxShadow: glow,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    fontFamily: 'var(--font-mono)',
+                    flexShrink: 0,
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  {item.value}
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       
@@ -581,6 +659,7 @@ export default function VisualizerCanvas({ stepData }) {
           if (viz.type === 'recursion_tree') return renderRecursionTree(viz);
           if (viz.type === 'grid') return renderGrid(viz);
           if (viz.type === 'variables') return renderVariables(viz);
+          if (viz.type === 'stack_queue') return renderStackQueue(viz);
           if (viz.type === 'console') return renderConsoleLog(viz);
           return null;
         })}

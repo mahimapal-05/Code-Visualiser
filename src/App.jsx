@@ -37,11 +37,28 @@ export default function App() {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [isSimulationMode, setIsSimulationMode] = useState(false);
   const [syncStatus, setSyncStatus] = useState('idle'); // idle, syncing, compiled, error
+  const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
+  const [breakpoints, setBreakpoints] = useState([]);
   const chatEndRef = useRef(null);
 
-  // 1. Fetch Health Status on Mount
+  // 1. Fetch Health Status and check Share URL parameters on Mount
   useEffect(() => {
     fetchHealthStatus();
+
+    // Parse URL share parameters
+    const params = new URLSearchParams(window.location.search);
+    const sharedCode = params.get('code');
+    const sharedLang = params.get('lang');
+    if (sharedCode) {
+      try {
+        setCode(decodeURIComponent(sharedCode));
+      } catch (e) {
+        setCode(sharedCode);
+      }
+    }
+    if (sharedLang) {
+      setLanguage(sharedLang);
+    }
   }, []);
 
   const fetchHealthStatus = async () => {
@@ -113,13 +130,19 @@ export default function App() {
     }
   };
 
-  // 2. Playback player auto-advancer
+  // 2. Playback player auto-advancer with Breakpoints check
   useEffect(() => {
     if (isPlaying && trace && trace.steps) {
       playTimerRef.current = setInterval(() => {
         setCurrentStepIndex((prev) => {
           if (prev < trace.steps.length - 1) {
-            return prev + 1;
+            const nextIdx = prev + 1;
+            const nextStep = trace.steps[nextIdx];
+            if (nextStep && breakpoints.includes(nextStep.line)) {
+              setIsPlaying(false); // Pause on breakpoint
+              clearInterval(playTimerRef.current);
+            }
+            return nextIdx;
           } else {
             setIsPlaying(false); // Stop playing at end
             clearInterval(playTimerRef.current);
@@ -134,7 +157,64 @@ export default function App() {
     return () => {
       if (playTimerRef.current) clearInterval(playTimerRef.current);
     };
-  }, [isPlaying, trace, playbackSpeed]);
+  }, [isPlaying, trace, playbackSpeed, breakpoints]);
+
+  // Voice AI Tutor Narration Effect
+  useEffect(() => {
+    if (isVoiceEnabled && trace && trace.steps && trace.steps[currentStepIndex]) {
+      const explanation = trace.steps[currentStepIndex].explanation;
+      if (explanation && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(explanation);
+        utterance.rate = 1.0;
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+  }, [currentStepIndex, isVoiceEnabled, trace]);
+
+  // Keyboard Shortcuts Listener
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const tagName = e.target.tagName.toLowerCase();
+      if (['input', 'textarea', 'select'].includes(tagName)) return;
+
+      if (e.code === 'Space') {
+        e.preventDefault();
+        setIsPlaying(prev => !prev);
+      } else if (e.code === 'ArrowRight') {
+        e.preventDefault();
+        if (trace && trace.steps && currentStepIndex < trace.steps.length - 1) {
+          setIsPlaying(false);
+          setCurrentStepIndex(prev => prev + 1);
+        }
+      } else if (e.code === 'ArrowLeft') {
+        e.preventDefault();
+        if (trace && trace.steps && currentStepIndex > 0) {
+          setIsPlaying(false);
+          setCurrentStepIndex(prev => prev - 1);
+        }
+      } else if (e.code === 'KeyR') {
+        e.preventDefault();
+        setIsPlaying(false);
+        setCurrentStepIndex(0);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [trace, currentStepIndex]);
+
+  const handleToggleBreakpoint = (line) => {
+    setBreakpoints(prev => 
+      prev.includes(line) ? prev.filter(l => l !== line) : [...prev, line]
+    );
+  };
+
+  const handleShareCode = () => {
+    const url = `${window.location.origin}${window.location.pathname}?lang=${encodeURIComponent(language)}&code=${encodeURIComponent(code)}`;
+    navigator.clipboard.writeText(url);
+    alert('🔗 Shareable link copied to clipboard!');
+  };
 
   // Autoscroll chat
   useEffect(() => {
@@ -307,20 +387,54 @@ export default function App() {
           </h1>
         </div>
 
-        {/* Connection status badge */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            background: connectionStatus === 'healthy' ? (hasGroqKey ? '#10b981' : '#f59e0b') : '#ef4444',
-            boxShadow: connectionStatus === 'healthy' 
-              ? (hasGroqKey ? '0 0 8px rgba(16, 185, 129, 0.6)' : '0 0 8px rgba(245, 158, 11, 0.6)') 
-              : '0 0 8px rgba(239, 68, 68, 0.6)'
-          }} />
-          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-            {connectionMessage}
-          </span>
+        {/* Connection status badge and Header Tools */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button 
+            onClick={() => setIsVoiceEnabled(prev => !prev)}
+            className="btn-secondary"
+            style={{
+              padding: '6px 12px',
+              borderRadius: '6px',
+              fontSize: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: isVoiceEnabled ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
+              borderColor: isVoiceEnabled ? 'var(--color-success)' : 'var(--border-subtle)'
+            }}
+          >
+            <span>{isVoiceEnabled ? '🔊' : '🔇'}</span> Voice Tutor: {isVoiceEnabled ? 'ON' : 'OFF'}
+          </button>
+
+          <button 
+            onClick={handleShareCode}
+            className="btn-secondary"
+            style={{
+              padding: '6px 12px',
+              borderRadius: '6px',
+              fontSize: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <span>🔗</span> Share Link
+          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              background: connectionStatus === 'healthy' ? (hasGroqKey ? '#10b981' : '#f59e0b') : '#ef4444',
+              boxShadow: connectionStatus === 'healthy' 
+                ? (hasGroqKey ? '0 0 8px rgba(16, 185, 129, 0.6)' : '0 0 8px rgba(245, 158, 11, 0.6)') 
+                : '0 0 8px rgba(239, 68, 68, 0.6)'
+            }} />
+            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+              {connectionMessage}
+            </span>
+          </div>
         </div>
       </header>
 
@@ -341,6 +455,8 @@ export default function App() {
             syncStatus={syncStatus}
             isSimulationMode={isSimulationMode}
             setIsSimulationMode={setIsSimulationMode}
+            breakpoints={breakpoints}
+            onToggleBreakpoint={handleToggleBreakpoint}
           />
         </div>
 

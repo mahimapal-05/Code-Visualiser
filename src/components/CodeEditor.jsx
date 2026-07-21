@@ -86,6 +86,90 @@ public class Main {
         head.next = newNode;
     }
 }`
+  },
+  cpp: {
+    bubble: `#include <iostream>
+#include <vector>
+
+void bubbleSort(std::vector<int>& arr) {
+    int n = arr.size();
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n - i - 1; j++) {
+            if (arr[j] > arr[j+1]) {
+                std::swap(arr[j], arr[j+1]);
+            }
+        }
+    }
+}
+
+int main() {
+    std::vector<int> arr = {5, 3, 8, 2};
+    bubbleSort(arr);
+    for (int x : arr) std::cout << x << " ";
+    return 0;
+}`,
+    fibonacci: `#include <iostream>
+
+int fib(int n) {
+    if (n <= 1) return n;
+    return fib(n-1) + fib(n-2);
+}
+
+int main() {
+    std::cout << fib(3) << std::endl;
+    return 0;
+}`,
+    linkedlist: `#include <iostream>
+
+struct Node {
+    int value;
+    Node* next;
+    Node(int val) : value(val), next(nullptr) {}
+};
+
+int main() {
+    Node* head = new Node(10);
+    head->next = new Node(20);
+
+    Node* newNode = new Node(15);
+    newNode->next = head->next;
+    head->next = newNode;
+    return 0;
+}`
+  },
+  javascript: {
+    bubble: `function bubbleSort(arr) {
+    let n = arr.length;
+    for (let i = 0; i < n; i++) {
+        for (let j = 0; j < n - i - 1; j++) {
+            if (arr[j] > arr[j+1]) {
+                [arr[j], arr[j+1]] = [arr[j+1], arr[j]];
+            }
+        }
+    }
+    return arr;
+}
+
+console.log(bubbleSort([5, 3, 8, 2]));`,
+    fibonacci: `function fib(n) {
+    if (n <= 1) return n;
+    return fib(n-1) + fib(n-2);
+}
+
+console.log(fib(3));`,
+    linkedlist: `class Node {
+    constructor(value) {
+        this.value = value;
+        this.next = null;
+    }
+}
+
+let head = new Node(10);
+head.next = new Node(20);
+
+let newNode = new Node(15);
+newNode.next = head.next;
+head.next = newNode;`
   }
 };
 
@@ -101,19 +185,25 @@ export default function CodeEditor({
   activeLine,
   syncStatus,
   isSimulationMode,
-  setIsSimulationMode
+  setIsSimulationMode,
+  breakpoints = [],
+  onToggleBreakpoint = () => {}
 }) {
   const [activeTemplate, setActiveTemplate] = useState('bubble');
 
   // Sync templates on language change
   useEffect(() => {
-    setCode(EXAMPLES[language][activeTemplate]);
+    if (EXAMPLES[language] && EXAMPLES[language][activeTemplate]) {
+      setCode(EXAMPLES[language][activeTemplate]);
+    }
     setIsSimulationMode(false);
   }, [language, activeTemplate, setCode, setIsSimulationMode]);
 
   const handleTemplateChange = (e) => {
     setActiveTemplate(e.target.value);
-    setCode(EXAMPLES[language][e.target.value]);
+    if (EXAMPLES[language] && EXAMPLES[language][e.target.value]) {
+      setCode(EXAMPLES[language][e.target.value]);
+    }
     setIsSimulationMode(false);
   };
 
@@ -155,6 +245,8 @@ export default function CodeEditor({
           >
             <option value="python">Python</option>
             <option value="java">Java</option>
+            <option value="cpp">C++</option>
+            <option value="javascript">JavaScript</option>
           </select>
         </div>
 
@@ -243,7 +335,9 @@ export default function CodeEditor({
             }}
           >
             {code.split('\n').map((lineText, idx) => {
-              const isHighlighted = (idx + 1) === activeLine;
+              const lineNum = idx + 1;
+              const isHighlighted = lineNum === activeLine;
+              const hasBreakpoint = breakpoints.includes(lineNum);
               return (
                 <div 
                   key={idx} 
@@ -256,15 +350,25 @@ export default function CodeEditor({
                     transition: 'background-color 0.25s ease'
                   }}
                 >
-                  <span style={{ 
-                    width: '30px', 
-                    textAlign: 'right', 
-                    marginRight: '16px', 
-                    color: isHighlighted ? 'var(--color-accent)' : 'var(--text-muted)', 
-                    userSelect: 'none',
-                    fontWeight: isHighlighted ? 'bold' : 'normal'
-                  }}>
-                    {idx + 1}
+                  <span 
+                    onClick={() => onToggleBreakpoint(lineNum)}
+                    title="Click to toggle breakpoint"
+                    style={{ 
+                      width: '35px', 
+                      textAlign: 'right', 
+                      marginRight: '16px', 
+                      color: hasBreakpoint ? '#ef4444' : (isHighlighted ? 'var(--color-accent)' : 'var(--text-muted)'), 
+                      userSelect: 'none',
+                      fontWeight: isHighlighted || hasBreakpoint ? 'bold' : 'normal',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'flex-end',
+                      gap: '4px'
+                    }}
+                  >
+                    {hasBreakpoint && <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />}
+                    {lineNum}
                   </span>
                   <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
                     {lineText || ' '}
@@ -276,7 +380,7 @@ export default function CodeEditor({
         ) : (
           /* Render standard editable textarea */
           <>
-            {/* Line Numbers */}
+            {/* Line Numbers with Breakpoints */}
             <div style={{
               padding: '16px 8px 16px 16px',
               background: 'rgba(10, 12, 16, 0.3)',
@@ -287,9 +391,30 @@ export default function CodeEditor({
               fontSize: '13px',
               lineHeight: '20px',
               userSelect: 'none',
-              minWidth: '40px'
+              minWidth: '45px'
             }}>
-              {lineNumbers.map(n => <div key={n}>{n}</div>)}
+              {lineNumbers.map(n => {
+                const hasBp = breakpoints.includes(n);
+                return (
+                  <div 
+                    key={n} 
+                    onClick={() => onToggleBreakpoint(n)}
+                    title="Click to toggle breakpoint"
+                    style={{ 
+                      cursor: 'pointer',
+                      color: hasBp ? '#ef4444' : 'inherit',
+                      fontWeight: hasBp ? 'bold' : 'normal',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'flex-end',
+                      gap: '4px'
+                    }}
+                  >
+                    {hasBp && <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />}
+                    {n}
+                  </div>
+                );
+              })}
             </div>
 
             {/* Textarea Code Input */}
