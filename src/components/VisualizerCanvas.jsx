@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 // Custom hook to track previous variables for flashing changes
 function usePrevious(value) {
@@ -41,6 +41,7 @@ function SVGArrow({ fromX, fromY, toX, toY }) {
 }
 
 export default function VisualizerCanvas({ stepData }) {
+  const [canvasScale, setCanvasScale] = useState(1.0);
   const prevVariables = usePrevious(stepData?.variables) || {};
 
   if (!stepData) {
@@ -636,11 +637,48 @@ export default function VisualizerCanvas({ stepData }) {
   };
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
       
+      {/* Zoom scale toolbar controls */}
+      <div style={{
+        position: 'absolute',
+        top: '8px',
+        right: '16px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        zIndex: 10
+      }}>
+        <button 
+          onClick={() => setCanvasScale(prev => Math.max(0.7, prev - 0.1))}
+          className="btn-secondary" 
+          style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11px', minWidth: '24px' }}
+        >
+          ➖
+        </button>
+        <span style={{ fontSize: '10px', color: 'var(--text-secondary)', background: 'rgba(0,0,0,0.3)', padding: '3px 8px', borderRadius: '4px', fontFamily: 'var(--font-mono)' }}>
+          {Math.round(canvasScale * 100)}%
+        </span>
+        <button 
+          onClick={() => setCanvasScale(prev => Math.min(1.4, prev + 0.1))}
+          className="btn-secondary" 
+          style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11px', minWidth: '24px' }}
+        >
+          ➕
+        </button>
+        <button 
+          onClick={() => setCanvasScale(1)}
+          className="btn-secondary" 
+          style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11px' }}
+        >
+          Reset
+        </button>
+      </div>
+
       {explanation && (
         <div style={{
           padding: '12px 16px',
+          paddingRight: '180px', // Prevent text from overlapping scale controls
           background: 'rgba(167, 139, 250, 0.08)',
           borderBottom: '1px solid rgba(167, 139, 250, 0.15)',
           fontSize: '13.5px',
@@ -652,17 +690,25 @@ export default function VisualizerCanvas({ stepData }) {
         </div>
       )}
 
-      <div style={{ flexGrow: 1, padding: '20px', overflowY: 'auto' }}>
-        {visuals.map((viz, idx) => {
-          if (viz.type === 'array') return renderArray(viz);
-          if (viz.type === 'linked_list') return renderLinkedList(viz);
-          if (viz.type === 'recursion_tree') return renderRecursionTree(viz);
-          if (viz.type === 'grid') return renderGrid(viz);
-          if (viz.type === 'variables') return renderVariables(viz);
-          if (viz.type === 'stack_queue') return renderStackQueue(viz);
-          if (viz.type === 'console') return renderConsoleLog(viz);
-          return null;
-        })}
+      <div style={{ flexGrow: 1, padding: '20px', overflowY: 'auto', position: 'relative' }}>
+        {/* Scale container */}
+        <div style={{
+          transform: `scale(${canvasScale})`,
+          transformOrigin: 'top left',
+          width: `${100 / canvasScale}%`,
+          transition: 'transform 0.15s ease-out'
+        }}>
+          {visuals.map((viz, idx) => {
+            if (viz.type === 'array') return renderArray(viz);
+            if (viz.type === 'linked_list') return renderLinkedList(viz);
+            if (viz.type === 'recursion_tree') return renderRecursionTree(viz);
+            if (viz.type === 'grid') return renderGrid(viz);
+            if (viz.type === 'variables') return renderVariables(viz);
+            if (viz.type === 'stack_queue') return renderStackQueue(viz);
+            if (viz.type === 'console') return renderConsoleLog(viz);
+            return null;
+          })}
+        </div>
       </div>
 
       {/* Variables & Call Stack Panel */}
@@ -698,6 +744,11 @@ export default function VisualizerCanvas({ stepData }) {
                       </td>
                       <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', padding: '4px 0' }}>
                         {typeof val === 'object' ? JSON.stringify(val) : String(val)}
+                        {hasChanged && (
+                          <span style={{ color: 'var(--text-muted)', fontSize: '10px', marginLeft: '6px', fontWeight: 'normal' }}>
+                            (was {typeof prevVal === 'object' ? JSON.stringify(prevVal) : String(prevVal)})
+                          </span>
+                        )}
                       </td>
                     </tr>
                   );

@@ -46,6 +46,8 @@ print(bubble_sort([5, 3, 8, 2]))`);
   const [isSimulationMode, setIsSimulationMode] = useState(false);
   const [syncStatus, setSyncStatus] = useState('idle'); // idle, syncing, compiled, error
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
+  const [speechRate, setSpeechRate] = useState(1.0);
+  const [isChatCollapsed, setIsChatCollapsed] = useState(false);
   const [breakpoints, setBreakpoints] = useState([]);
   const chatEndRef = useRef(null);
 
@@ -174,11 +176,11 @@ print(bubble_sort([5, 3, 8, 2]))`);
       if (explanation && 'speechSynthesis' in window) {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(explanation);
-        utterance.rate = 1.0;
+        utterance.rate = speechRate;
         window.speechSynthesis.speak(utterance);
       }
     }
-  }, [currentStepIndex, isVoiceEnabled, trace]);
+  }, [currentStepIndex, isVoiceEnabled, trace, speechRate]);
 
   // Keyboard Shortcuts Listener
   useEffect(() => {
@@ -398,7 +400,7 @@ print(bubble_sort([5, 3, 8, 2]))`);
         {/* Connection status badge and Header Tools */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button 
-            onClick={() => setIsVoiceEnabled(prev => !prev)}
+            onClick={() => setIsChatCollapsed(prev => !prev)}
             className="btn-secondary"
             style={{
               padding: '6px 12px',
@@ -407,12 +409,52 @@ print(bubble_sort([5, 3, 8, 2]))`);
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              background: isVoiceEnabled ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
-              borderColor: isVoiceEnabled ? 'var(--color-success)' : 'var(--border-subtle)'
+              background: isChatCollapsed ? 'rgba(167, 139, 250, 0.15)' : 'transparent',
+              borderColor: isChatCollapsed ? 'var(--color-accent)' : 'var(--border-subtle)'
             }}
           >
-            <span>{isVoiceEnabled ? '🔊' : '🔇'}</span> Voice Tutor: {isVoiceEnabled ? 'ON' : 'OFF'}
+            <span>💬</span> {isChatCollapsed ? 'Show Coach' : 'Hide Coach'}
           </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <button 
+              onClick={() => setIsVoiceEnabled(prev => !prev)}
+              className="btn-secondary"
+              style={{
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: isVoiceEnabled ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
+                borderColor: isVoiceEnabled ? 'var(--color-success)' : 'var(--border-subtle)'
+              }}
+            >
+              <span>{isVoiceEnabled ? '🔊' : '🔇'}</span> Voice Tutor
+            </button>
+            {isVoiceEnabled && (
+              <select
+                value={speechRate}
+                onChange={(e) => setSpeechRate(parseFloat(e.target.value))}
+                style={{
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--text-primary)',
+                  borderRadius: '6px',
+                  padding: '4px',
+                  fontSize: '11px',
+                  cursor: 'pointer',
+                  outline: 'none'
+                }}
+              >
+                <option value="0.75">0.75x</option>
+                <option value="1.0">1.0x</option>
+                <option value="1.25">1.25x</option>
+                <option value="1.5">1.5x</option>
+              </select>
+            )}
+          </div>
 
           <button 
             onClick={handleShareCode}
@@ -447,7 +489,14 @@ print(bubble_sort([5, 3, 8, 2]))`);
       </header>
 
       {/* Main Workspace Layout */}
-      <main className="workspace-grid">
+      <main 
+        className="workspace-grid"
+        style={{
+          gridTemplateColumns: isChatCollapsed 
+            ? 'minmax(360px, 1.2fr) minmax(420px, 2.8fr)' 
+            : 'minmax(360px, 1.2fr) minmax(420px, 1.7fr) minmax(320px, 1.1fr)'
+        }}
+      >
         {/* Left Side: Code Editor */}
         <div style={{ height: '100%', overflow: 'hidden' }}>
           <CodeEditor 
@@ -644,19 +693,25 @@ print(bubble_sort([5, 3, 8, 2]))`);
 
                 {/* Speed Controls */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Interval:</span>
-                  <input
-                    type="range"
-                    min="200"
-                    max="2000"
-                    step="100"
+                  <select
                     value={playbackSpeed}
                     onChange={(e) => setPlaybackSpeed(parseInt(e.target.value))}
-                    style={{ width: '80px', height: '4px', accentColor: 'var(--color-accent)' }}
-                  />
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', width: '45px', textAlign: 'right' }}>
-                    {playbackSpeed}ms
-                  </span>
+                    style={{
+                      background: 'var(--bg-surface)',
+                      border: '1px solid var(--border-subtle)',
+                      color: 'var(--text-primary)',
+                      padding: '4px 8px',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      outline: 'none'
+                    }}
+                  >
+                    <option value="200">Fast (200ms)</option>
+                    <option value="500">Normal (500ms)</option>
+                    <option value="1000">Slow (1000ms)</option>
+                    <option value="2000">Snail (2000ms)</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -665,105 +720,112 @@ print(bubble_sort([5, 3, 8, 2]))`);
         </div>
 
         {/* Right Panel: Coach Chat / RAG Explainer */}
-        <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-          {/* Header */}
-          <div style={{
-            padding: '12px 16px',
-            borderBottom: '1px solid var(--border-subtle)',
-            background: 'rgba(10, 12, 16, 0.4)',
-            flexShrink: 0
-          }}>
-            <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--color-accent)' }}>🤖 AI COACH (RAG)</span>
-          </div>
-
-          {/* Chat scrolling log */}
-          <div style={{ flexGrow: 1, padding: '16px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {chatHistory.map((msg, idx) => (
-              <div 
-                key={idx}
-                style={{
-                  alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                  maxWidth: '85%',
-                  background: msg.role === 'user' ? 'var(--bg-surface)' : 'rgba(167,139,250,0.06)',
-                  border: msg.role === 'user' ? '1px solid var(--border-subtle)' : '1px solid rgba(167,139,250,0.1)',
-                  borderRadius: msg.role === 'user' ? '12px 12px 0 12px' : '12px 12px 12px 0',
-                  padding: '10px 14px',
-                  fontSize: '13px',
-                  lineHeight: '1.5'
-                }}
-              >
-                <div style={{ whiteSpace: 'pre-wrap' }}>
-                  {msg.content}
-                </div>
-
-                {/* Retrieved Sources list */}
-                {msg.sources && msg.sources.length > 0 && (
-                  <div style={{ marginTop: '8px', paddingTop: '6px', borderTop: '1px dashed rgba(255,255,255,0.05)', fontSize: '10px', color: 'var(--text-muted)' }}>
-                    📚 Retrived: {msg.sources.join(', ')}
-                  </div>
-                )}
-              </div>
-            ))}
-            
-            {isChatLoading && (
-              <div style={{
-                alignSelf: 'flex-start',
-                background: 'rgba(167,139,250,0.06)',
-                border: '1px solid rgba(167,139,250,0.1)',
-                borderRadius: '12px 12px 12px 0',
-                padding: '10px 14px',
-                fontSize: '13px',
-                color: 'var(--text-muted)'
-              }}>
-                Typing explanation...
-              </div>
-            )}
-            <div ref={chatEndRef} />
-          </div>
-
-          {/* Input field */}
-          <form 
-            onSubmit={handleSendChatMessage}
-            style={{
+        {!isChatCollapsed && (
+          <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+            {/* Header */}
+            <div style={{
               padding: '12px 16px',
-              borderTop: '1px solid var(--border-subtle)',
+              borderBottom: '1px solid var(--border-subtle)',
               background: 'rgba(10, 12, 16, 0.4)',
-              display: 'flex',
-              gap: '8px',
               flexShrink: 0
-            }}
-          >
-            <input 
-              type="text"
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              placeholder={hasGroqKey ? "Ask about stack or variable steps..." : "RAG Chat is offline"}
-              disabled={isChatLoading || !hasGroqKey}
+            }}>
+              <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--color-accent)' }}>🤖 AI COACH (RAG)</span>
+            </div>
+
+            {/* Chat scrolling log */}
+            <div style={{ flexGrow: 1, padding: '16px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {chatHistory.map((msg, idx) => (
+                <div 
+                  key={idx}
+                  style={{
+                    alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                    maxWidth: '85%',
+                    background: msg.role === 'user' ? 'var(--bg-surface)' : 'rgba(167,139,250,0.06)',
+                    border: msg.role === 'user' ? '1px solid var(--border-subtle)' : '1px solid rgba(167,139,250,0.1)',
+                    borderRadius: msg.role === 'user' ? '12px 12px 0 12px' : '12px 12px 12px 0',
+                    padding: '10px 14px',
+                    fontSize: '13px',
+                    lineHeight: '1.5'
+                  }}
+                >
+                  <div style={{ whiteSpace: 'pre-wrap' }}>
+                    {msg.content}
+                  </div>
+
+                  {/* Retrieved Sources list */}
+                  {msg.sources && msg.sources.length > 0 && (
+                    <div style={{ marginTop: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '6px' }}>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
+                        Retrieved RAG Sources:
+                      </span>
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                        {msg.sources.map((s, sidx) => (
+                          <span 
+                            key={sidx}
+                            style={{
+                              background: 'rgba(139, 92, 246, 0.1)',
+                              color: 'var(--color-accent)',
+                              fontSize: '9px',
+                              padding: '2px 4px',
+                              borderRadius: '4px',
+                              border: '1px solid rgba(139, 92, 246, 0.2)'
+                            }}
+                          >
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Input Form */}
+            <form 
+              onSubmit={handleSendChatMessage}
               style={{
-                flexGrow: 1,
-                background: 'var(--bg-surface)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: '8px',
-                padding: '8px 12px',
-                color: 'var(--text-primary)',
-                outline: 'none',
-                fontSize: '13px'
-              }}
-            />
-            <button 
-              type="submit"
-              disabled={isChatLoading || !hasGroqKey || !chatInput.trim()}
-              className="btn-primary"
-              style={{
-                borderRadius: '8px',
-                padding: '8px 14px',
-                fontSize: '13px'
+                padding: '16px',
+                borderTop: '1px solid var(--border-subtle)',
+                background: 'rgba(10, 12, 16, 0.4)',
+                display: 'flex',
+                gap: '8px',
+                flexShrink: 0
               }}
             >
-              Send
-            </button>
-          </form>
-        </div>
+              <input 
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder={hasGroqKey ? "Ask about stack or variable steps..." : "RAG Chat is offline"}
+                disabled={isChatLoading || !hasGroqKey}
+                style={{
+                  flexGrow: 1,
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  color: 'var(--text-primary)',
+                  outline: 'none',
+                  fontSize: '13px'
+                }}
+              />
+              <button 
+                type="submit"
+                disabled={isChatLoading || !hasGroqKey || !chatInput.trim()}
+                className="btn-primary"
+                style={{
+                  borderRadius: '8px',
+                  padding: '8px 14px',
+                  fontSize: '13px'
+                }}
+              >
+                Send
+              </button>
+            </form>
+          </div>
+        )}
       </main>
     </div>
   );
